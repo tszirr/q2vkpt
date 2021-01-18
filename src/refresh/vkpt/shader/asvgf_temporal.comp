@@ -69,8 +69,7 @@ temporal_filter(
 		sampler2D tex_depth_normal_curr,
 		sampler2D tex_depth_normal_prev,
 		sampler2D tex_moments_histlen_prev,
-		image2D   img_moments_histlen_curr,
-		image2D   img_filtered_output)
+		bool pong)
 {
 	ivec2 ipos = ivec2(gl_GlobalInvocationID);
 	vec4 motion = texelFetch(tex_motion, ipos, 0);
@@ -79,8 +78,13 @@ temporal_filter(
 
 	/* env map */
 	if(motion.a < 0.0 || color_curr.a < 1.0) {
-		imageStore(img_moments_histlen_curr, ipos, vec4(0));
-		imageStore(img_filtered_output, ipos, color_curr);
+		if (pong) {
+		imageStore(IMG_ASVGF_HIST_MOMENTS_B, ipos, vec4(0));
+		imageStore(IMG_ASVGF_ATROUS_PING, ipos, color_curr);
+		} else {
+		imageStore(IMG_ASVGF_HIST_MOMENTS_A, ipos, vec4(0));
+		imageStore(IMG_ASVGF_ATROUS_PING, ipos, color_curr);
+		}
 		return;
 	}
 
@@ -149,13 +153,21 @@ temporal_filter(
 
 		vec2 mom_curr = vec2(lum_curr, lum_curr * lum_curr);
 		vec2 mom = mix(moments_histlen_prev.xy, mom_curr, alpha_moments);
-		imageStore(img_moments_histlen_curr, ipos, vec4(mom, hist_len, 0));
+		if (pong) {
+		imageStore(IMG_ASVGF_HIST_MOMENTS_B, ipos, vec4(mom, hist_len, 0));
+		} else {
+		imageStore(IMG_ASVGF_HIST_MOMENTS_A, ipos, vec4(mom, hist_len, 0));
+		}
 
 		vec4 color_var;
 	   	color_var.rgb = mix(color_prev.rgb, color_curr.rgb, alpha_color);
 		color_var.a   = sqrt(max(mom.y - mom.x * mom.x, 0.0));
 		color_var.a  *= max(1.0, 8.0 / hist_len);
-		imageStore(img_filtered_output, ipos, color_var);
+		if (pong) {
+		imageStore(IMG_ASVGF_ATROUS_PING, ipos, color_var);
+		} else {
+		imageStore(IMG_ASVGF_ATROUS_PING, ipos, color_var);
+		}
 
 		imageStore(IMG_DEBUG, ipos, vec4(viridis_quintic(alpha_color), 0));
 	}
@@ -204,9 +216,14 @@ temporal_filter(
 		   unreliable. max seems to work more stable */
 		color_var.a   = max_lum * 8;
 		//color_var.a   = sqrt(max(sum_moments.y - sum_moments.x * sum_moments.x, 0.0)) * 16.0;
-
-		imageStore(img_moments_histlen_curr, ipos, vec4(sum_moments, 1, 0));
-		imageStore(img_filtered_output, ipos, color_var);
+		
+		if (pong) {
+			imageStore(IMG_ASVGF_HIST_MOMENTS_B, ipos, vec4(sum_moments, 1, 0));
+			imageStore(IMG_ASVGF_ATROUS_PING, ipos, color_var);
+		} else {
+			imageStore(IMG_ASVGF_HIST_MOMENTS_A, ipos, vec4(sum_moments, 1, 0));
+			imageStore(IMG_ASVGF_ATROUS_PING, ipos, color_var);
+		}
 
 		imageStore(IMG_DEBUG, ipos, vec4(viridis_quintic(1.0), 0));
 	}
@@ -228,8 +245,7 @@ main()
 				TEX_PT_DEPTH_NORMAL_A,
 				TEX_PT_DEPTH_NORMAL_B,
 				TEX_ASVGF_HIST_MOMENTS_B,
-				IMG_ASVGF_HIST_MOMENTS_A,
-				IMG_ASVGF_ATROUS_PING
+				false
 				);
 	}
 	else {
@@ -240,8 +256,7 @@ main()
 				TEX_PT_DEPTH_NORMAL_B,
 				TEX_PT_DEPTH_NORMAL_A,
 				TEX_ASVGF_HIST_MOMENTS_A,
-				IMG_ASVGF_HIST_MOMENTS_B,
-				IMG_ASVGF_ATROUS_PING
+				true
 				);
 	}
 }
