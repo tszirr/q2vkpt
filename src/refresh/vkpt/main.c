@@ -1342,8 +1342,6 @@ retry:;
 	_VK(vkResetFences(qvk.device, 1, qvk.fences_frame_sync + sem_idx));
 	//Com_Printf("Frame idx: %ld, sem idx: %d, image idx: %d; flight idx: %d\n", qvk.frame_counter, sem_idx, qvk.current_image_index, qvk.current_flight_index);
 
-	_VK(vkpt_profiler_next_frame(qvk.current_flight_index));
-
 	/* cannot be called in R_EndRegistration as it would miss the initially textures (charset etc) */
 	if(register_model_dirty) {
 		vkDeviceWaitIdle(qvk.device);
@@ -1365,6 +1363,7 @@ retry:;
 
 	_VK(vkResetCommandBuffer(qvk.cmd_buf_current, 0));
 	_VK(vkBeginCommandBuffer(qvk.cmd_buf_current, &begin_info));
+	_VK(vkpt_profiler_next_frame(qvk.current_flight_index));
 	_VK(vkpt_profiler_query(PROFILER_FRAME_TIME, PROFILER_START));
 }
 

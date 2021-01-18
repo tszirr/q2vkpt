@@ -19,7 +19,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "vkpt.h"
 
 static VkQueryPool query_pool;
-static uint64_t query_pool_results[NUM_PROFILER_QUERIES_PER_FRAME];
+static __attribute__ ((aligned (8))) uint64_t query_pool_results[NUM_PROFILER_QUERIES_PER_FRAME];
+static int queries_initialized[MAX_SWAPCHAIN_IMAGES] = { 0 };
+static int queries_ready[MAX_SWAPCHAIN_IMAGES] = { 0 };
 
 VkResult
 vkpt_profiler_initialize()
@@ -52,21 +54,26 @@ vkpt_profiler_query(int idx, VKPTProfilerAction action)
 
 VkResult
 vkpt_profiler_next_frame(int frame_num)
-{ 
-	_VK(vkGetQueryPoolResults(qvk.device, query_pool,
+{
+	if (queries_initialized[frame_num]) {
+		VkResult status = vkGetQueryPoolResults(qvk.device, query_pool,
 			NUM_PROFILER_QUERIES_PER_FRAME * frame_num, 
 			NUM_PROFILER_QUERIES_PER_FRAME,
 			sizeof(query_pool_results),
 			query_pool_results,
 			sizeof(query_pool_results[0]),
-			VK_QUERY_RESULT_64_BIT));
+			VK_QUERY_RESULT_64_BIT);
+		queries_ready[frame_num] = (status == VK_SUCCESS);
+		if (status == VK_NOT_READY)
+			status = VK_SUCCESS;
+		_VK(status);
+	}
 
-	/*
 	// crashes, need to add!!! queries are undefined if not reset before
 	vkCmdResetQueryPool(qvk.cmd_buf_current, query_pool,
-			NUM_PROFILER_QUERIES_PER_FRAME * frame_num, 
+			NUM_PROFILER_QUERIES_PER_FRAME * frame_num,
 			NUM_PROFILER_QUERIES_PER_FRAME);
-			*/
+	queries_initialized[frame_num] = 1;
 
 	//Com_Printf("%ld %ld\n", query_pool_results[0], query_pool_results[1]);
 
