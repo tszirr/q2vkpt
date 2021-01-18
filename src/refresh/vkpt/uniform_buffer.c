@@ -112,11 +112,11 @@ vkpt_uniform_buffer_destroy()
 VkResult
 vkpt_uniform_buffer_update()
 {
-	BufferResource_t *ubo = uniform_buffers + qvk.current_image_index;
+	BufferResource_t *ubo = uniform_buffers + qvk.current_flight_index;
 	assert(ubo);
 	assert(ubo->memory != VK_NULL_HANDLE);
 	assert(ubo->buffer != VK_NULL_HANDLE);
-	assert(qvk.current_image_index < qvk.num_swap_chain_images);
+	assert(qvk.current_flight_index < qvk.num_swap_chain_images);
 
 	QVKUniformBuffer_t *mapped_ubo = buffer_map(ubo);
 	assert(mapped_ubo);

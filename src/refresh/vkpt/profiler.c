@@ -43,7 +43,7 @@ vkpt_profiler_destroy()
 VkResult
 vkpt_profiler_query(int idx, VKPTProfilerAction action)
 {
-	idx = idx * 2 + action + qvk.current_image_index * NUM_PROFILER_QUERIES_PER_FRAME;
+	idx = idx * 2 + action + qvk.current_flight_index * NUM_PROFILER_QUERIES_PER_FRAME;
 	vkCmdWriteTimestamp(qvk.cmd_buf_current, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 			query_pool, idx);
 

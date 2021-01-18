@@ -684,8 +684,8 @@ vkpt_lh_upload_staging(VkCommandBuffer cmd_buf, int num_nodes)
 		.size = num_nodes * sizeof(compact_lh_node_t)
 	};
 	vkCmdCopyBuffer(cmd_buf,
-		buf_light_hierarchy_staging[qvk.current_image_index].buffer,
-		buf_light_hierarchy[qvk.current_image_index].buffer,
+		buf_light_hierarchy_staging[qvk.current_flight_index].buffer,
+		buf_light_hierarchy[qvk.current_flight_index].buffer,
 		1, &copyRegion);
 
 #if 0
@@ -713,10 +713,10 @@ vkpt_lh_update(
 {
 	//struct timeval  tv1, tv2;
 	//gettimeofday(&tv1, NULL);
-	void *lh = buffer_map(buf_light_hierarchy_staging + qvk.current_image_index);
+	void *lh = buffer_map(buf_light_hierarchy_staging + qvk.current_flight_index);
 	int num_nodes = lh_build_binned(lh, positions, light_colors, num_primitives, 8);
 	lh = NULL;
-	buffer_unmap(buf_light_hierarchy_staging + qvk.current_image_index);
+	buffer_unmap(buf_light_hierarchy_staging + qvk.current_flight_index);
 
 	VkResult res = vkpt_lh_upload_staging(cmd_buf, num_nodes);
 

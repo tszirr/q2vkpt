@@ -157,7 +157,7 @@ VkResult
 vkpt_asvgf_create_gradient_samples(VkCommandBuffer cmd_buf, uint32_t frame_num)
 {
 	VkDescriptorSet desc_sets[] = {
-		qvk.desc_set_ubo[qvk.current_image_index],
+		qvk.desc_set_ubo[qvk.current_flight_index],
 		qvk.desc_set_textures,
 		qvk.desc_set_vertex_buffer
 	};
@@ -210,7 +210,7 @@ VkResult
 vkpt_asvgf_record_cmd_buffer(VkCommandBuffer cmd_buf)
 {
 	VkDescriptorSet desc_sets[] = {
-		qvk.desc_set_ubo[qvk.current_image_index],
+		qvk.desc_set_ubo[qvk.current_flight_index],
 		qvk.desc_set_textures,
 		qvk.desc_set_vertex_buffer
 	};

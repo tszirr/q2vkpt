@@ -352,6 +352,7 @@ out:;
 
 	vkGetSwapchainImagesKHR(qvk.device, qvk.swap_chain, &qvk.num_swap_chain_images, NULL);
 	//qvk.swap_chain_images = malloc(qvk.num_swap_chain_images * sizeof(*qvk.swap_chain_images));
+	Com_Printf("Swap chain images: %d\n", qvk.num_swap_chain_images);
 	assert(qvk.num_swap_chain_images < MAX_SWAPCHAIN_IMAGES);
 	vkGetSwapchainImagesKHR(qvk.device, qvk.swap_chain, &qvk.num_swap_chain_images, qvk.swap_chain_images);
 
@@ -1233,14 +1234,14 @@ R_RenderFrame(refdef_t *fd)
 	_VK(vkpt_profiler_query(PROFILER_INSTANCE_GEOMETRY, PROFILER_STOP));
 
 	_VK(vkpt_profiler_query(PROFILER_BVH_UPDATE, PROFILER_START));
-	vkpt_pt_destroy_dynamic(qvk.current_image_index);
+	vkpt_pt_destroy_dynamic(qvk.current_flight_index);
 
 	assert(num_vert_instanced % 3 == 0);
-	vkpt_pt_create_dynamic(qvk.current_image_index, qvk.buf_vertex.buffer,
+	vkpt_pt_create_dynamic(qvk.current_flight_index, qvk.buf_vertex.buffer,
 		offsetof(VertexBuffer, positions_instanced), num_vert_instanced); 
 
-	vkpt_pt_create_toplevel(qvk.current_image_index);
-	vkpt_pt_update_descripter_set_bindings(qvk.current_image_index);
+	vkpt_pt_create_toplevel(qvk.current_flight_index);
+	vkpt_pt_update_descripter_set_bindings(qvk.current_flight_index);
 	_VK(vkpt_profiler_query(PROFILER_BVH_UPDATE, PROFILER_STOP));
 
 	_VK(vkpt_profiler_query(PROFILER_ASVGF_GRADIENT_SAMPLES, PROFILER_START));
@@ -1324,31 +1325,37 @@ R_BeginFrame()
 	LOG_FUNC();
 retry:;
 	int sem_idx = qvk.frame_counter % MAX_FRAMES_IN_FLIGHT;
-
-	vkWaitForFences(qvk.device, 1, qvk.fences_frame_sync + sem_idx, VK_TRUE, ~((uint64_t) 0));
+	
 	VkResult res_swapchain = vkAcquireNextImageKHR(qvk.device, qvk.swap_chain, ~((uint64_t) 0),
 			qvk.semaphores[SEM_IMG_AVAILABLE + sem_idx], VK_NULL_HANDLE, &qvk.current_image_index);
+//	qvk.current_flight_index = qvk.current_image_index;
+	qvk.current_flight_index = qvk.frame_counter % qvk.num_swap_chain_images;
 	if(res_swapchain == VK_ERROR_OUT_OF_DATE_KHR || res_swapchain == VK_SUBOPTIMAL_KHR) {
 		recreate_swapchain();
+		vkDeviceWaitIdle(qvk.device);
 		goto retry;
 	}
 	else if(res_swapchain != VK_SUCCESS) {
 		_VK(res_swapchain);
 	}
-	vkResetFences(qvk.device, 1, qvk.fences_frame_sync + sem_idx);
+	_VK(vkWaitForFences(qvk.device, 1, qvk.fences_frame_sync + sem_idx, VK_TRUE, ~((uint64_t) 0)));
+	_VK(vkResetFences(qvk.device, 1, qvk.fences_frame_sync + sem_idx));
+	//Com_Printf("Frame idx: %ld, sem idx: %d, image idx: %d; flight idx: %d\n", qvk.frame_counter, sem_idx, qvk.current_image_index, qvk.current_flight_index);
 
-	_VK(vkpt_profiler_next_frame(qvk.current_image_index));
+	_VK(vkpt_profiler_next_frame(qvk.current_flight_index));
 
 	/* cannot be called in R_EndRegistration as it would miss the initially textures (charset etc) */
 	if(register_model_dirty) {
+		vkDeviceWaitIdle(qvk.device);
 		_VK(vkpt_vertex_buffer_upload_models_to_staging());
 		_VK(vkpt_vertex_buffer_upload_staging());
 		register_model_dirty = 0;
+		vkDeviceWaitIdle(qvk.device);
 	}
 	vkpt_textures_end_registration();
 	vkpt_draw_clear_stretch_pics();
 
-	qvk.cmd_buf_current = qvk.command_buffers[qvk.current_image_index];
+	qvk.cmd_buf_current = qvk.command_buffers[qvk.current_flight_index];
 
 	VkCommandBufferBeginInfo begin_info = {
 		.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -1375,7 +1382,7 @@ R_EndFrame()
 	int sem_idx = qvk.frame_counter % MAX_FRAMES_IN_FLIGHT;
 
 	VkSemaphore          wait_semaphores[]   = { qvk.semaphores[SEM_IMG_AVAILABLE + sem_idx]    };
-	VkPipelineStageFlags wait_stages[]       = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT  };
+	VkPipelineStageFlags wait_stages[]       = { VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 	VkSemaphore          signal_semaphores[] = { qvk.semaphores[SEM_RENDER_FINISHED + sem_idx]  };
 
 	VkSubmitInfo submit_info = {
@@ -1405,6 +1412,8 @@ R_EndFrame()
 	if(res_present == VK_ERROR_OUT_OF_DATE_KHR || res_present == VK_SUBOPTIMAL_KHR) {
 		recreate_swapchain();
 	}
+	else
+		_VK(res_present);
 	qvk.frame_counter++;
 }
 
@@ -1638,6 +1647,7 @@ void
 R_EndRegistration(void)
 {
 	LOG_FUNC();
+	vkDeviceWaitIdle(qvk.device);
 	IMG_FreeUnused();
 	MOD_FreeUnused();
 }

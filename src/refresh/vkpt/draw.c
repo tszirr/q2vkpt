@@ -408,7 +408,7 @@ vkpt_draw_clear_stretch_pics()
 VkResult
 vkpt_draw_submit_stretch_pics(VkCommandBuffer *cmd_buf)
 {
-	BufferResource_t *buf_spq = buf_stretch_pic_queue + qvk.current_image_index;
+	BufferResource_t *buf_spq = buf_stretch_pic_queue + qvk.current_flight_index;
 	StretchPic_t *spq_dev = (StretchPic_t *) buffer_map(buf_spq);
 	memcpy(spq_dev, stretch_pic_queue, sizeof(stretch_pic_queue));
 	buffer_unmap(buf_spq);
@@ -427,7 +427,7 @@ vkpt_draw_submit_stretch_pics(VkCommandBuffer *cmd_buf)
 	};
 
 	VkDescriptorSet desc_sets[] = {
-		desc_set_sbo[qvk.current_image_index],
+		desc_set_sbo[qvk.current_flight_index],
 		qvk.desc_set_textures
 	};
 

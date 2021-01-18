@@ -160,6 +160,7 @@ typedef struct QVK_s {
 	const char                  **sdl2_extensions;
 
 	uint32_t                    current_image_index;
+	uint32_t                    current_flight_index;
 
 	VkShaderModule              shader_modules[NUM_QVK_SHADER_MODULES];
 

@@ -303,7 +303,7 @@ VkResult
 vkpt_vertex_buffer_create_instance(uint32_t num_instances)
 {
 	VkDescriptorSet desc_sets[] = {
-		qvk.desc_set_ubo[qvk.current_image_index],
+		qvk.desc_set_ubo[qvk.current_flight_index],
 		qvk.desc_set_vertex_buffer
 	};
 	vkCmdBindPipeline(qvk.cmd_buf_current, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline_instance_geometry);

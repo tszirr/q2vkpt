@@ -547,10 +547,10 @@ vkpt_pt_record_cmd_buffer(VkCommandBuffer cmd_buf, uint32_t frame_num)
 	);
 
 	vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV,
-			rt_pipeline_layout, 0, 1, rt_descriptor_set + qvk.current_image_index, 0, 0);
+			rt_pipeline_layout, 0, 1, rt_descriptor_set + qvk.current_flight_index, 0, 0);
 
 	vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV,
-			rt_pipeline_layout, 1, 1, qvk.desc_set_ubo + qvk.current_image_index, 0, 0);
+			rt_pipeline_layout, 1, 1, qvk.desc_set_ubo + qvk.current_flight_index, 0, 0);
 
 	vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV,
 			rt_pipeline_layout, 2, 1, &qvk.desc_set_textures, 0, 0);
@@ -559,7 +559,7 @@ vkpt_pt_record_cmd_buffer(VkCommandBuffer cmd_buf, uint32_t frame_num)
 			rt_pipeline_layout, 3, 1, &qvk.desc_set_vertex_buffer, 0, 0);
 
 	vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV,
-			rt_pipeline_layout, 4, 1, qvk.desc_set_light_hierarchy + qvk.current_image_index, 0, 0);
+			rt_pipeline_layout, 4, 1, qvk.desc_set_light_hierarchy + qvk.current_flight_index, 0, 0);
 
 	if(!strcmp(cvar_rtx->string, "on")) {
 		vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, rt_pipeline_rtx);
